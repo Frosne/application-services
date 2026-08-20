@@ -18,6 +18,8 @@ pub enum ErrorKind {
     InvalidKeyLength,
     #[error("Interior nul byte was found")]
     NulError,
+    #[error("The NSS key database token is locked")]
+    TokenNotLoggedIn,
     #[error("Conversion error: {0}")]
     ConversionError(#[from] std::num::TryFromIntError),
     #[error("Base64 decode error: {0}")]

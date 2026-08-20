@@ -329,7 +329,14 @@ impl KeyManager for NSSKeyManager {
             return Ok(bytes);
         }
 
-        let key = get_or_create_aes256_key(KEY_NAME).map_err(|_| LoginsApiError::MissingKey)?;
+        let key = match get_or_create_aes256_key(KEY_NAME) {
+            Ok(key) => key,
+            // Token locked between authenticating and the lookup; retry once.
+            Err(e) if matches!(e.kind(), nss_as::ErrorKind::TokenNotLoggedIn) => {
+                return self.get_key()
+            }
+            Err(_) => return Err(LoginsApiError::MissingKey),
+        };
         let mut bytes: Vec<u8> = Vec::new();
         serde_json::to_writer(
             &mut bytes,

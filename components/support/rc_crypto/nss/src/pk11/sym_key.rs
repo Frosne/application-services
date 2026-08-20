@@ -180,7 +180,17 @@ pub fn get_aes256_key(name: &str) -> Result<Option<SymKey>> {
             Ok(key) => Ok(Some(key)),
             Err(e) => Err(e),
         },
-        Err(_) => Ok(None),
+        // A null return means either that no key of this name exists, or that the token is
+        // locked and we were not permitted to look.
+        Err(_) => unsafe {
+            if nss_sys::PK11_NeedLogin(slot.as_mut_ptr()) == nss_sys::PR_TRUE
+                && nss_sys::PK11_IsLoggedIn(slot.as_mut_ptr(), ptr::null_mut()) != nss_sys::PR_TRUE
+            {
+                Err(ErrorKind::TokenNotLoggedIn.into())
+            } else {
+                Ok(None)
+            }
+        },
     }
 }
 
